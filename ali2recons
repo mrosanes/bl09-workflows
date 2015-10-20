@@ -22,7 +22,9 @@ align_mrc = align_name + '.mrc'
 print(align_mrc)
 
 xmipp_image_convert = "scipion xmipp_image_convert"
-os.system(xmipp_image_convert + " -i " + align_tree_hdf5 + " -o " + align_mrc)
+cmd = xmipp_image_convert + " -i " + align_tree_hdf5 + " -o " + align_mrc
+print(cmd)
+os.system(cmd)
 time.sleep(2)
 
 tilt_angles = 'angles.tlt'
