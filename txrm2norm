@@ -1,0 +1,30 @@
+#!/usr/bin/python
+
+import os
+import time
+import argparse
+
+parser = argparse.ArgumentParser(description='txrm2nexus + normalize')
+
+parser.add_argument('raw_data_txrm', type=str, 
+                    help='Enter txrm containing raw data stack.')
+parser.add_argument('raw_FF_txrm', type=str, 
+                    help='Enter txrm containing raw FF stack.')
+
+args = parser.parse_args()
+
+start_time = time.time()
+
+raw_data_txrm = args.raw_data_txrm
+raw_FF_txrm = args.raw_FF_txrm
+os.system("txrm2nexus " + raw_data_txrm + " " + raw_FF_txrm + " -o=sb")
+
+rawtxrm_name, fExt = os.path.splitext(raw_data_txrm)
+raw_hdf5 = rawtxrm_name + '.hdf5'
+os.system('normalize ' + raw_hdf5)
+
+rawhdf5_name, fExt = os.path.splitext(raw_hdf5)
+norm_hdf5 = rawtxrm_name + '_norm.hdf5'
+
+print("\nTOTAL ELAPSED TIME:")
+print("--- %s minutes ---\n" % ((time.time() - start_time)/60))

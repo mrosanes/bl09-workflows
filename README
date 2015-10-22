@@ -2,15 +2,17 @@ BL09 experiment data processing workflows for tomography and spectroscopy
 processing.
 
 The goal of this project is to create different workflows in order to process
-the Mistral data. This should ease the scientists work.
+the Mistral data.
 
-Following scripts should make part fo this project once finished.
+Following scripts are available:
 
-- norm2recons (old fastrecons: DONE)
-- txrm2recons (from raw data to recons)
-- hdf52recons (from raw data in hdf5 to recons)
-- ali2recons (from aligned to recons: DONE)
-- txrm2norm (from txrm to normalized)
+- txrm2norm: from raw data to normalized data
+- txrm2ali: from raw data to aligned projections
+- norm2recons: from normalized data to reconstructed tomography (old:fastrecons)
+- txrm2recons: from txrm raw data to reconstructed tomography
+- hdf52recons: from hdf5 raw data to reconstructed tomography 
+- ali2recons: from aligned to reconstructed tomography 
+
 
 
 
