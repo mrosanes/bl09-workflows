@@ -26,7 +26,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Reconstruction: \
                           hdf5 to mrc + reconstruction + trim')
 parser.add_argument('aligned_hdf5', type=str, 
-                    help='Enter hdf5 or mrc containing aligned stack')
+                    help='Enter hdf5 containing aligned stack')
 parser.add_argument('-i', '--iterations', type=int, default=30, 
                     help='Iterations for tomo3d (default=30)')
 
