@@ -97,5 +97,11 @@ align_xyz = align_name.replace("_ali","_recons") + ".xyz"
 trimvol_cmd = ("trimvol -yz " + align_xzy + " " + align_xyz)
 os.system(trimvol_cmd)
 
+xzy_recons_size = os.path.getsize(align_xzy)
+xyz_recons_size = os.path.getsize(align_xyz)
+
+if (xzy_recons_size-2 <= xyz_recons_size <= xzy_recons_size+2): 
+    os.system("rm " + align_xzy)
+
 print("\nTOTAL ELAPSED TIME:")
 print("--- %s minutes ---\n" % ((time.time() - start_time)/60))
