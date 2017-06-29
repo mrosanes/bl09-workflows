@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [ "$1" == "-h" ] ; then
-    echo "xtend_1 needs two arguments:"
+    echo "xtend_recons needs, at least, two arguments:"
     echo '- ManyTomos output dir'
     echo '- Output dir'
     exit 0
@@ -10,13 +10,16 @@ fi
 if [ $# -lt 2 ]
   then
     echo "Not enough arguments supplied"
-    echo "Execute xtend_1 -h to show the help "
+    echo "Execute xtend_recons -h to show the help "
     exit -1
 fi
 
+echo `date`
+start=`date +%s`
+
 ManyTomosOutputDir=$1
 Xrm2NexusOutputDir=$2
-
+ANGLES="angles.tlt"
 
 if [ -z "$3" ]; then
     ZP_DR=25
@@ -46,6 +49,18 @@ if [ -z "$7" ]; then
     PSF_DIR="/beamlines/bl09/controls/user_resources/psf_directory"
 else
     PSF_DIR=$7
+fi
+
+if [ -z "$8" ]; then
+    ITERATIONS=30
+else
+    ITERATIONS=$8
+fi
+
+if [ -z "$9" ]; then
+    HEIGHT=500
+else
+    HEIGHT=$9
 fi
 
 
@@ -96,6 +111,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     echo $dir 
     echo "###################################################################################"
 
+    echo "-----ALIGN PROJECTIONS AT DIFFERENT FOCI FOR EACH GIVEN ANGLE------"
     # At each angle align the projections of the samples at many focus: multifocus (different ZP, same angle). 
     mrc_array=($(ls *_norm_crop.mrc))
     reference=${mrc_array[1]}
@@ -104,6 +120,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
         FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.03.jar
         java -cp $FIJI_PATHS eftemtomoj.EFTEM_TomoJ -tsSignal ${dir}/${reference} 1 1 -tsBg ${dir}/${e_mrc} 2 1 -align NMI 0
     done
+    echo "--------------------------------------------------------------------"
 
     # Rename output files. fiji add .mrc extension in the names
     for mrc in ${mrc_array[@]}; do
@@ -112,6 +129,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
         mv ${mrc}_aligned.transf ${fixed_name}_aligned.transf
     done
 
+    echo "-------------------AVERAGE IMAGES--------------------------"
     # Fusion addition  (works with any foci number)
     n_zp_pos=${#mrc_array[@]}
     samplename=`echo ${mrc_array[0]} | cut -d "-" -f 1`
@@ -129,6 +147,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
         fi
     done
     scipion xmipp_image_operate ${fusename} --divide $n_zp_pos
+    echo "-----------------------------------------------------------"
 
     DATE=$(echo $fusename | cut -d'_' -f 1)
     ENERGY=$(echo $fusename | cut -d'_' -f 3)
@@ -148,9 +167,34 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     ctalign $DECONV_FILE_HDF
     echo "-----------------------------------------------------------"
 
+    # From hdf5 to mrc
+    ALIGNED_HDF=`find -name "*_ali.hdf5"`
+    align_tree_hdf5='FastAligned/tomo_aligned@'${ALIGNED_HDF}
+    ALIGNED_MRC=${ALIGNED_HDF%.hdf5}.mrc
+    scipion xmipp_image_convert -i $align_tree_hdf5 -o $ALIGNED_MRC
+    sleep 2
+    
+    echo "------RECONSTRUCTION AND CHANGING VOLUME AXIS:-------------"
+    # Reconstruct
+    RECONS_XZY=${ALIGNED_MRC%_ali.mrc}_recons.xzy
+    tomo3d -v 1 -l $ITERATIONS -z $HEIGHT -S -a $ANGLES -i $ALIGNED_MRC -o $RECONS_XZY
+    RECONS_XYZ=${RECONS_XZY%.xzy}_recons.xyz
+    trimvol -yz $RECONS_XZY $RECONS_XYZ
+    sleep 1
+    rm $RECONS_XZY
+
+    RECONS_MRC=${fusename%.mrc}_recons.mrc
+    mv $RECONS_XYZ $RECONS_MRC
+    echo "-----------------------------------------------------------"
+
 done
 
 
 cd $root_path
 
+### Time spent for completing the workflow #####################################
+end=`date +%s`
+runtime=$((end-start))
+echo "Time to run: $runtime seconds"
+################################################################################
 
