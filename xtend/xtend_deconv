@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [ "$1" == "-h" ] ; then
-    echo "xtend_1 needs two arguments:"
+    echo "xtend_deconv needs two arguments:"
     echo '- ManyTomos output dir'
     echo '- Output dir'
     exit 0
@@ -10,7 +10,7 @@ fi
 if [ $# -lt 2 ]
   then
     echo "Not enough arguments supplied"
-    echo "Execute xtend_1 -h to show the help "
+    echo "Execute xtend_deconv -h to show the help "
     exit -1
 fi
 
