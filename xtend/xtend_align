@@ -136,10 +136,18 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     echo $DATE
     echo $ENERGY
     echo `pwd`
-    echo "DECONVOLUTION:-----"
+    echo "----------DECONVOLUTION:----------"
     echo "tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${fusename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}"
     tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${fusename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
-    echo "-------------------"
+    echo "----------------------------------"
+
+    echo "ALIGNMENT BETWEEN THE PROJECTIONS AT DIFFERENT ANGLES:-----"
+    DECONV_FILE=`find -name "*_deconv_*"`
+    mrc2hdf $DECONV_FILE
+    DECONV_FILE_HDF=${DECONV_FILE%.mrc}.hdf5
+    ctalign $DECONV_FILE_HDF
+    echo "-----------------------------------------------------------"
+
 done
 
 
