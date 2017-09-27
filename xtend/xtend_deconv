@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
 if [ "$1" == "-h" ] ; then
-    echo "xtend_deconv needs two arguments:"
-    echo '- ManyTomos output dir'
-    echo '- Output dir'
+    echo "xtend_deconv needs the following arguments:"
+    echo '- xrm input files directory (absolute path)'
+    echo '- output directory (absolute path)'
+    echo "- zp_dr (default: 25)"
+    echo "- dx (default: 10)"
+    echo "- kw (default: 0.02)"
+    echo "- zsize (default: 20)"
+    echo "- psf_dir (default: /beamlines/bl09/controls/user_resources/psf_directory)"
     exit 0
 fi
 
