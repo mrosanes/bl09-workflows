@@ -22,13 +22,13 @@ Xrm2NexusOutputDir=$2
 ANGLES="angles.tlt"
 
 if [ -z "$3" ]; then
-    ZP_DR=25
+    ZP_DR=40
 else
     ZP_DR=$3
 fi
 
 if [ -z "$4" ]; then
-    DX=10
+    DX=11.8
 else
     DX=$4
 fi
@@ -40,7 +40,7 @@ else
 fi
 
 if [ -z "$6" ]; then
-    ZSIZE=20
+    ZSIZE=4
 else
     ZSIZE=$6
 fi
@@ -117,7 +117,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     reference=${mrc_array[1]}
     array=${mrc_array[@]/$reference}
     for e_mrc in ${array[@]}; do
-        FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.03.jar
+        FIJI_PATHS=$FIJI_HOME/ImageJ-linux64:$FIJI_PLUGINS/TomoJ_2.32-jar-with-dependencies.jar:$FIJI_PLUGINS/TomoJ/Eftem_TomoJ_1.04.jar
         java -cp $FIJI_PATHS eftemtomoj.EFTEM_TomoJ -tsSignal ${dir}/${reference} 1 1 -tsBg ${dir}/${e_mrc} 2 1 -align NMI 0
     done
     echo "--------------------------------------------------------------------"
