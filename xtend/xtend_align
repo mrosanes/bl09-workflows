@@ -49,7 +49,7 @@ else
 fi
 
 
-xrm2nexus $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
+manytomos2nexus $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
 
 root_path=`pwd`
 #Frame + 1 col
