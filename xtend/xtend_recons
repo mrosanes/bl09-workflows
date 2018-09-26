@@ -4,6 +4,15 @@ if [ "${1}" == "-h" ] ; then
     echo "xtend_recons needs, at least, two arguments:"
     echo '- ManyTomos output dir'
     echo '- Output dir'
+    echo 'Optional arguments (If you decide to not use the default values for any of the optional parameters, all the previous parameters must be passed)'
+    echo '- zone plate (default 40)'
+    echo '- pixel size (default 11.8)'
+    echo '- K value of deconvolution (default 0.02)'
+    echo '- sample thickness of deconvolution (default 4)'
+    echo '- directory with the corresponding Point Spread Function library (default "/beamlines/bl09/controls/user_resources/psf_directory")'
+    echo '- number of interation of the sirt reconstruction algorithm (default 30)'
+    echo '- final reconstruction volume thickness (in pixels) (default 500)'
+    echo '- align strategy ("IMOD" or "ctalign") (default "IMOD")'
     exit 0
 fi
 
