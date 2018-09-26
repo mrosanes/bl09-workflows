@@ -177,28 +177,33 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${fusename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
     echo "----------------------------------"
 
-    if $ALIGNMENT_STRATEGY == "ctalign":
-        echo "ALIGNMENT BETWEEN THE PROJECTIONS AT DIFFERENT ANGLES:-----"
-        DECONV_FILE=`find -name "*_deconv_*"`
-        mrc2hdf $DECONV_FILE
-        DECONV_FILE_HDF=${DECONV_FILE%.mrc}.hdf5
-        ctalign $DECONV_FILE_HDF
-        echo "-----------------------------------------------------------"
-    elif $ALIGNMENT_STRATEGY == "IMOD":
-        tiltxcorr2newstack ${DECONV_FILE} $ANGLES
-
     
+    echo "ALIGNMENT BETWEEN THE PROJECTIONS AT DIFFERENT ANGLES:-----"
+    if [ $ALIGNMENT_STRATEGY == "ctalign" ]; then
+            echo "Using ctalign"
+            DECONV_FILE=`find -name "*_deconv_*"`
+            mrc2hdf $DECONV_FILE
+            DECONV_FILE_HDF=${DECONV_FILE%.mrc}.hdf5
+            ctalign $DECONV_FILE_HDF
 
-    # From hdf5 to mrc
-    ALIGNED_HDF=`find -name "*_ali.hdf5"`
-    align_tree_hdf5='FastAligned/tomo_aligned@'${ALIGNED_HDF}
-    ALIGNED_MRC=${ALIGNED_HDF%.hdf5}.mrc
-    scipion xmipp_image_convert -i $align_tree_hdf5 -o $ALIGNED_MRC
-    sleep 2
+            # From hdf5 to mrc
+            ALIGNED_HDF=`find -name "*_ali.hdf5"`
+            align_tree_hdf5='FastAligned/tomo_aligned@'${ALIGNED_HDF}
+            ALIGNED_MRC=${ALIGNED_HDF%.hdf5}.mrc
+            scipion xmipp_image_convert -i $align_tree_hdf5 -o $ALIGNED_MRC
+            sleep 2
+            RECONS_XZY=${ALIGNED_MRC%_ali.mrc}_recons.xzy
+    elif [ $ALIGNMENT_STRATEGY == "IMOD" ]; then
+        echo "Using IMOD"
+        tiltxcorr2newstack ${DECONV_FILE} ${ANGLES}
+        ALIGNED_MRC=${DECONV_FILE%.mrc}.ali
+        ANGLES=${DECONV_FILE%.mrc}.tlt 
+        RECONS_XZY=${DECONV_FILE%.mrc}_recons.xzy
+    fi
+    echo "-----------------------------------------------------------"
     
     echo "------RECONSTRUCTION AND CHANGING VOLUME AXIS:-------------"
     # Reconstruct
-    RECONS_XZY=${ALIGNED_MRC%_ali.mrc}_recons.xzy
     tomo3d -v 1 -l $ITERATIONS -z $HEIGHT -S -a $ANGLES -i $ALIGNED_MRC -o $RECONS_XZY
     RECONS_XYZ=${RECONS_XZY%.xzy}_recons.xyz
     trimvol -yz $RECONS_XZY $RECONS_XYZ
