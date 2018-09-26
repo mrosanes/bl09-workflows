@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ "$1" == "-h" ] ; then
+if [ "${1}" == "-h" ] ; then
     echo "xtend_recons needs, at least, two arguments:"
     echo '- ManyTomos output dir'
     echo '- Output dir'
@@ -18,65 +18,65 @@ echo `date`
 start=`date +%s`
 
 # xrm raw files
-ManyTomosOutputDir=$1
+ManyTomosOutputDir=${1}
 # output directory
-Xrm2NexusOutputDir=$2
+Xrm2NexusOutputDir=${2}
 ANGLES="angles.tlt"
 
 # zone plate
-if [ -z "$3" ]; then
+if [ -z "${3}" ]; then
     ZP_DR=40
 else
-    ZP_DR=$3
+    ZP_DR=${3}
 fi
 
 # pixel size
-if [ -z "$4" ]; then
+if [ -z "${4}" ]; then
     DX=11.8
 else
-    DX=$4
+    DX=${4}
 fi
 
 # K value of deconvolution
-if [ -z "$5" ]; then
+if [ -z "${5}" ]; then
     KW=0.02
 else
-    KW=$5
+    KW=${5}
 fi
 
 # sample thickness of deconvolution
-if [ -z "$6" ]; then
+if [ -z "${6}" ]; then
     ZSIZE=4
 else
-    ZSIZE=$6
+    ZSIZE=${6}
 fi
 
 # directory with the corresponding Point Spread Function library
-if [ -z "$7" ]; then
+if [ -z "${7}" ]; then
     PSF_DIR="/beamlines/bl09/controls/user_resources/psf_directory"
 else
-    PSF_DIR=$7
+    PSF_DIR=${7}
 fi
 
 # number of interation of the sirt reconstruction algorithm
-if [ -z "$8" ]; then
+if [ -z "${8}" ]; then
     ITERATIONS=30
 else
-    ITERATIONS=$8
+    ITERATIONS=${8}
 fi
 
 # final reconstruction volume thickness (in pixels)
-if [ -z "$9" ]; then
+if [ -z "${9}" ]; then
     HEIGHT=500
 else
-    HEIGHT=$9
+    HEIGHT=${9}
 fi
 
 # align strategy (IMOD or ctalign)
-if [ -z "$10" ]; then
+if [ -z "${10}" ]; then
     ALIGNMENT_STRATEGY="IMOD"
 else
-    ALIGNMENT_STRATEGY=$10
+    ALIGNMENT_STRATEGY=${10}
 fi
 
 
@@ -179,7 +179,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
 
     
     echo "ALIGNMENT BETWEEN THE PROJECTIONS AT DIFFERENT ANGLES:-----"
-    if [ $ALIGNMENT_STRATEGY == "ctalign" ]; then
+    if [ "$ALIGNMENT_STRATEGY" == "ctalign" ]; then
             echo "Using ctalign"
             DECONV_FILE=`find -name "*_deconv_*"`
             mrc2hdf $DECONV_FILE
@@ -193,7 +193,7 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
             scipion xmipp_image_convert -i $align_tree_hdf5 -o $ALIGNED_MRC
             sleep 2
             RECONS_XZY=${ALIGNED_MRC%_ali.mrc}_recons.xzy
-    elif [ $ALIGNMENT_STRATEGY == "IMOD" ]; then
+    elif [ "$ALIGNMENT_STRATEGY" == "IMOD" ]; then
         echo "Using IMOD"
         tiltxcorr2newstack ${DECONV_FILE} ${ANGLES}
         ALIGNED_MRC=${DECONV_FILE%.mrc}.ali
