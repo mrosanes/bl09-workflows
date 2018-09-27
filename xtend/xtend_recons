@@ -188,9 +188,9 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
 
     
     echo "ALIGNMENT BETWEEN THE PROJECTIONS AT DIFFERENT ANGLES:-----"
+    DECONV_FILE=`find -name "*_deconv_*"`
     if [ "$ALIGNMENT_STRATEGY" == "ctalign" ]; then
             echo "Using ctalign"
-            DECONV_FILE=`find -name "*_deconv_*"`
             mrc2hdf $DECONV_FILE
             DECONV_FILE_HDF=${DECONV_FILE%.mrc}.hdf5
             ctalign $DECONV_FILE_HDF
