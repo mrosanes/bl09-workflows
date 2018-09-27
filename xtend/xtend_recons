@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 
-if [ "$1" == "-h" ] ; then
+if [ "${1}" == "-h" ] ; then
     echo "xtend_recons needs, at least, two arguments:"
     echo '- ManyTomos output dir'
     echo '- Output dir'
+    echo 'Optional arguments (If you decide to not use the default values for any of the optional parameters, all the previous parameters must be passed)'
+    echo '- zone plate (default 40)'
+    echo '- pixel size (default 11.8)'
+    echo '- K value of deconvolution (default 0.02)'
+    echo '- sample thickness of deconvolution (default 4)'
+    echo '- directory with the corresponding Point Spread Function library (default "/beamlines/bl09/controls/user_resources/psf_directory")'
+    echo '- number of interation of the sirt reconstruction algorithm (default 30)'
+    echo '- final reconstruction volume thickness (in pixels) (default 500)'
+    echo '- align strategy ("IMOD" or "ctalign") (default "IMOD")'
     exit 0
 fi
 
@@ -17,51 +26,68 @@ fi
 echo `date`
 start=`date +%s`
 
-ManyTomosOutputDir=$1
-Xrm2NexusOutputDir=$2
+# xrm raw files
+ManyTomosOutputDir=${1}
+# output directory
+Xrm2NexusOutputDir=${2}
 ANGLES="angles.tlt"
 
-if [ -z "$3" ]; then
+# zone plate
+if [ -z "${3}" ]; then
     ZP_DR=40
 else
-    ZP_DR=$3
+    ZP_DR=${3}
 fi
 
-if [ -z "$4" ]; then
+# pixel size
+if [ -z "${4}" ]; then
     DX=11.8
 else
-    DX=$4
+    DX=${4}
 fi
 
-if [ -z "$5" ]; then
+# K value of deconvolution
+if [ -z "${5}" ]; then
     KW=0.02
 else
-    KW=$5
+    KW=${5}
 fi
 
-if [ -z "$6" ]; then
+# sample thickness of deconvolution
+if [ -z "${6}" ]; then
     ZSIZE=4
 else
-    ZSIZE=$6
+    ZSIZE=${6}
 fi
 
-if [ -z "$7" ]; then
+# directory with the corresponding Point Spread Function library
+if [ -z "${7}" ]; then
     PSF_DIR="/beamlines/bl09/controls/user_resources/psf_directory"
 else
-    PSF_DIR=$7
+    PSF_DIR=${7}
 fi
 
-if [ -z "$8" ]; then
+# number of interation of the sirt reconstruction algorithm
+if [ -z "${8}" ]; then
     ITERATIONS=30
 else
-    ITERATIONS=$8
+    ITERATIONS=${8}
 fi
 
-if [ -z "$9" ]; then
+# final reconstruction volume thickness (in pixels)
+if [ -z "${9}" ]; then
     HEIGHT=500
 else
-    HEIGHT=$9
+    HEIGHT=${9}
 fi
+
+# align strategy (IMOD or ctalign)
+if [ -z "${10}" ]; then
+    ALIGNMENT_STRATEGY="IMOD"
+else
+    ALIGNMENT_STRATEGY=${10}
+fi
+
 
 
 manytomos2nexus $ManyTomosOutputDir --output-dir-name $Xrm2NexusOutputDir
@@ -160,23 +186,33 @@ for dir in $( ls -d $Xrm2NexusOutputDir/*/* ); do
     tomo_deconv_wiener ${ZP_DR} ${ENERGY} ${DATE} ${fusename} ${DX} ${KW} ${ZSIZE} ${PSF_DIR}
     echo "----------------------------------"
 
+    
     echo "ALIGNMENT BETWEEN THE PROJECTIONS AT DIFFERENT ANGLES:-----"
     DECONV_FILE=`find -name "*_deconv_*"`
-    mrc2hdf $DECONV_FILE
-    DECONV_FILE_HDF=${DECONV_FILE%.mrc}.hdf5
-    ctalign $DECONV_FILE_HDF
-    echo "-----------------------------------------------------------"
+    if [ "$ALIGNMENT_STRATEGY" == "ctalign" ]; then
+            echo "Using ctalign"
+            mrc2hdf $DECONV_FILE
+            DECONV_FILE_HDF=${DECONV_FILE%.mrc}.hdf5
+            ctalign $DECONV_FILE_HDF
 
-    # From hdf5 to mrc
-    ALIGNED_HDF=`find -name "*_ali.hdf5"`
-    align_tree_hdf5='FastAligned/tomo_aligned@'${ALIGNED_HDF}
-    ALIGNED_MRC=${ALIGNED_HDF%.hdf5}.mrc
-    scipion xmipp_image_convert -i $align_tree_hdf5 -o $ALIGNED_MRC
-    sleep 2
+            # From hdf5 to mrc
+            ALIGNED_HDF=`find -name "*_ali.hdf5"`
+            align_tree_hdf5='FastAligned/tomo_aligned@'${ALIGNED_HDF}
+            ALIGNED_MRC=${ALIGNED_HDF%.hdf5}.mrc
+            scipion xmipp_image_convert -i $align_tree_hdf5 -o $ALIGNED_MRC
+            sleep 2
+            RECONS_XZY=${ALIGNED_MRC%_ali.mrc}_recons.xzy
+    elif [ "$ALIGNMENT_STRATEGY" == "IMOD" ]; then
+        echo "Using IMOD"
+        tiltxcorr2newstack ${DECONV_FILE} ${ANGLES}
+        ALIGNED_MRC=${DECONV_FILE%.mrc}.ali
+        ANGLES=${DECONV_FILE%.mrc}.tlt 
+        RECONS_XZY=${DECONV_FILE%.mrc}_recons.xzy
+    fi
+    echo "-----------------------------------------------------------"
     
     echo "------RECONSTRUCTION AND CHANGING VOLUME AXIS:-------------"
     # Reconstruct
-    RECONS_XZY=${ALIGNED_MRC%_ali.mrc}_recons.xzy
     tomo3d -v 1 -l $ITERATIONS -z $HEIGHT -S -a $ANGLES -i $ALIGNED_MRC -o $RECONS_XZY
     RECONS_XYZ=${RECONS_XZY%.xzy}_recons.xyz
     trimvol -yz $RECONS_XZY $RECONS_XYZ
