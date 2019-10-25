@@ -38,15 +38,14 @@ parser = argparse.ArgumentParser(description=description,
 parser.register('type', 'bool', str2bool)
 
 # Input files in txrm format
-parser.add_argument('raw_data_txrm', type=str, 
-                    help='Enter txrm containing raw data stack.')
-parser.add_argument('raw_FF_txrm', type=str, 
-                    help='Enter txrm containing raw FF stack.')
+parser.add_argument('filesdir',
+                    type=str,
+                    nargs='+', default=None,
+                    help= ('\'Tomo projection\' and \'BrightField\' stack' 
+                           + ' files, or \'Directory\' with subdirectories,' 
+                           + ' each one of them containing a Tomo projection' 
+                           + ' stack file and a BrighField stack file'))
 
-# Arguments for deconvolution
-parser.add_argument('-d', '--deconvolution', type='bool',
-                    default='True',
-                    help="Deconvolve mrc normalized stacks (default: True)")
 parser.add_argument('-zp', '--zp-size', type=int, default=25,
                     help="ZP zones size (in nm)\n"
                          + "(default: 25)")        
@@ -94,36 +93,37 @@ def convert_hdf2mrc(norm_file, tree="TomoNormalized/TomoNormalized",
     return norm_file
 
 
-# CONVERSION FROM TXRM TO HDF5
-print("CONVERSION FROM TXRM TO HDF5: -------------------")
-raw_data_txrm = args.raw_data_txrm
-raw_FF_txrm = args.raw_FF_txrm
-cmd = "txrm2nexus " + raw_data_txrm + " " + raw_FF_txrm + " -o=sb"
-print(cmd)
-os.system(cmd)
-date = raw_data_txrm.split("_")[0]
+def txrm2deconv_pipeline(raw_data_txrm, raw_FF_txrm):
+    """
+    # CONVERSION FROM TXRM TO HDF5
+    print("CONVERSION FROM TXRM TO HDF5: -------------------")
+    raw_data_txrm = args.raw_data_txrm
+    raw_FF_txrm = args.raw_FF_txrm
+    cmd = "txrm2nexus " + raw_data_txrm + " " + raw_FF_txrm + " -o=sb"
+    print(cmd)
+    os.system(cmd)
+    date = raw_data_txrm.split("_")[0]
+    """
 
+    ############ Only for test purposes; do not use in normal executions
+    raw_hdf5 = "20161203_tomo01_-11348.1.hdf5" ######### To be removed
+    date = raw_hdf5.split("_")[0]
+    ############
 
-############ Only for test purposes; do not use in normal executions
-# raw_hdf5 = "20161203_tomo01_-11348.1.hdf5" ######### To be removed
-# date = raw_hdf5.split("_")[0]
-############
+    # NORMALIZATION
+    print("NORMALIZATION: -------------------")
+    #raw_hdf5 = os.path.splitext(raw_data_txrm)[0] + ".hdf5" # Comment for tests
+    cmd = "normalize " + raw_hdf5
+    print(cmd)
+    os.system(cmd)
+    norm_file = os.path.splitext(raw_hdf5)[0] + "_norm.hdf5"
+    norm_file_hdf5 = norm_file
+    print("EXTRACT_ANGLES: -------------------")
+    cmd = "extract_angle " + norm_file
+    print(cmd)
+    os.system(cmd)
 
-# NORMALIZATION
-print("NORMALIZATION: -------------------")
-raw_hdf5 = os.path.splitext(raw_data_txrm)[0] + ".hdf5" # Comment for tests
-cmd = "normalize " + raw_hdf5
-print(cmd)
-os.system(cmd)
-norm_file = os.path.splitext(raw_hdf5)[0] + "_norm.hdf5"
-norm_file_hdf5 = norm_file
-print("EXTRACT_ANGLES: -------------------")
-cmd = "extract_angle " + norm_file
-print(cmd)
-os.system(cmd)
-
-# DECONVOLUTION
-elif args.deconvolution:
+    # DECONVOLUTION
     print("CONVERTING TO MRC: ---------------")
     norm_file = convert_hdf2mrc(
                 norm_file_hdf5, tree="TomoNormalized/TomoNormalized",
@@ -131,36 +131,52 @@ elif args.deconvolution:
 
     print("DECONVOLUTION: -------------------")
     arguments = [args.zp_size, args.energy, date, norm_file, 
-                 args.dx, args.kw, args.thickness, args.psf_dir]
+                args.dx, args.kw, args.thickness, args.psf_dir]
     args_str = " ".join(str(arg) for arg in arguments)
     cmd = "tomo_deconv_wiener " + args_str
     print(cmd)
     os.system(cmd)
-    time.sleep(2)
+    time.sleep(3)
     print("Deconvolution has been applied")
     for fname in os.listdir('.'):
-        if os.path.isfile(fname) and ("norm_deconv" and ".mrc") in fname:
+        is_file = os.path.isfile(fname)
+        if is_file and ("norm_deconv" in fname and ".mrc" in fname):
             norm_file = fname
             print("Deconvoluted file: " + norm_file)
             break
 
-# ABSORBANCE STACKS (MINUS NATURAL LOGARITHM: -LN)
-if args.minus_ln:
-    print("COMPUTE ABSORBANCE STACKS (-LN): -------------------")
-    cmd = "lnstacks " + norm_file
-    norm_file = os.path.splitext(norm_file)[0] + "_ln.mrc"
-    print(cmd)
-    os.system(cmd)
-   
-# CONVERT OUTPUT TO HDF5
-ext = os.path.splitext(norm_file)[0]
-if args.hdf5 and ext != "mrc":
-    print("CONVERSION FROM MRC TO HDF5: -------------------")
-    cmd = "mrc2hdf " + norm_file
-    print(cmd)
-    system.os(cmd)
-    norm_file = os.path.splitext(norm_file)[0] + ".hdf5"
+    # ABSORBANCE STACKS (MINUS NATURAL LOGARITHM: -LN)
+    if args.minus_ln:
+        print("COMPUTE ABSORBANCE STACKS (-LN): -------------------")
+        cmd = "lnstacks " + norm_file
+        norm_file = os.path.splitext(norm_file)[0] + "_ln.mrc"
+        print(cmd)
+        os.system(cmd)
+    
+    # CONVERT OUTPUT TO HDF5
+    ext = os.path.splitext(norm_file)[0]
+    if args.hdf5 and ext != "mrc":
+        print("CONVERSION FROM MRC TO HDF5: -------------------")
+        cmd = "mrc2hdf " + norm_file
+        print(cmd)
+        system.os(cmd)
+        norm_file = os.path.splitext(norm_file)[0] + ".hdf5"
 
-print("Output file is: " + norm_file)
+    print("Output file is: " + norm_file)
 
+# If input is a 'Tomo projection' stack file and a 'BrightField' stack file
+if os.path.isfile(args.filesdir[0]):
+    raw_data_txrm = args.filesdir[0]
+    raw_FF_txrm = args.filesdir[1]
+    txrm2deconv_pipeline(raw_data_txrm, raw_FF_txrm)
+# If input is a directory
+elif os.path.isdir(args.filesdir[0]):
+    tomos_dir = args.filesdir[0]
+    for tomo_dir in tomos_dir:
+        raw_data_txrm = "dummy.txt"
+        raw_FF_txrm = "dummy_FF.txt"
+        txrm2deconv_pipeline(raw_data_txrm, raw_FF_txrm)
+# If input are not files, neither a directory, raise exception
+else:
+    raise Exception("Input must be files or directory")
 
