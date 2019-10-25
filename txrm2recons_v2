@@ -167,7 +167,8 @@ elif args.deconvolution:
     time.sleep(2)
     print("Deconvolution has been applied")
     for fname in os.listdir('.'):
-        if os.path.isfile(fname) and ("norm_deconv" and ".mrc") in fname:
+        is_file = os.path.isfile(fname)
+        if is_file and ("norm_deconv" in fname and ".mrc" in fname):
             norm_file = fname
             print("Deconvoluted file: " + norm_file)
             break
