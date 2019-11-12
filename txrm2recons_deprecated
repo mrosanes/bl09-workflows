@@ -1,0 +1,107 @@
+#!/usr/bin/python
+
+"""
+(C) Copyright 2015 Marc Rosanes
+The program is distributed under the terms of the 
+GNU General Public License (or the Lesser GPL).
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+import os
+import time
+import argparse
+
+parser = argparse.ArgumentParser(description='Reconstruction: \
+                      txrm2nexus + normalize + align + hdf5_2_mrc + \
+                      reconstruction + trim')
+
+parser.add_argument('raw_data_txrm', type=str, 
+                    help='Enter txrm containing raw data stack.')
+parser.add_argument('raw_FF_txrm', type=str, 
+                    help='Enter txrm containing raw FF stack.')
+parser.add_argument('-i', '--iterations', type=int, default=30, 
+                    help='Iterations for tomo3d (default=30)')
+parser.add_argument('-r', '--roi', type=int, default=0, 
+                    help='Option for allowing ROI selection (default=0)')
+parser.add_argument('-x', '--nroihoriz', type=int, default=1, 
+                    help='Used for multiple ROIs: Number of ROIs in ' +
+                    'horizontal direction (default=1)')
+parser.add_argument('-y', '--nroivert', type=int, default=1, 
+                    help='Used for multiple ROIs: Number of ROIs in ' +
+                    'vertical direction (default=1)')
+parser.add_argument('-ww', '--width', type=int, default=200, 
+                    help='Used for multiple ROIs: Width of ROI in pixels.')
+parser.add_argument('-hh', '--height', type=int, default=200, 
+                    help='Used for multiple ROIs: Height of ROI in pixels.')
+
+args = parser.parse_args()
+start_time = time.time()
+
+raw_data_txrm = args.raw_data_txrm
+raw_FF_txrm = args.raw_FF_txrm
+os.system("txrm2nexus " + raw_data_txrm + " " + raw_FF_txrm + " -o=sb")
+
+rawtxrm_name, fExt = os.path.splitext(raw_data_txrm)
+raw_hdf5 = rawtxrm_name + '.hdf5'
+os.system('normalize ' + raw_hdf5)
+
+rawhdf5_name, fExt = os.path.splitext(raw_hdf5)
+norm_hdf5 = rawtxrm_name + '_norm.hdf5'
+
+if args.roi == 1:
+    print("User ROI choice")
+    os.system('ctalign ' + norm_hdf5 + " -r " + str(args.roi))
+elif args.nroihoriz != 1 or args.nroivert != 1:
+    print("Multiple ROIs")
+    os.system('ctalign ' + norm_hdf5 +
+              " -x " + str(args.nroihoriz) + " -y " + str(args.nroivert) +
+              " -ww " + str(args.width) + " -hh " + str(args.height))
+else:
+    print("Default execution")
+    os.system('ctalign ' + norm_hdf5)
+time.sleep(2)
+
+norm_name, fileExtension = os.path.splitext(norm_hdf5)
+align_hdf5 = norm_name + '_ali.hdf5'
+
+align_tree_hdf5 = 'FastAligned/tomo_aligned@' + align_hdf5
+
+align_name, fileExtension = os.path.splitext(align_hdf5)
+align_mrc = align_name + '.mrc'
+
+xmipp_image_convert = "scipion xmipp_image_convert"
+os.system(xmipp_image_convert + " -i " + align_tree_hdf5 + " -o " + align_mrc)
+time.sleep(2)
+
+tilt_angles = 'angles.tlt'
+align_xzy = align_name.replace("_ali","_recons") + '.xzy'
+
+tomo3d_cmd = ("tomo3d -v 1 -l " + str(args.iterations) + " -z 500 -S -a " +  
+              tilt_angles + " -i " + align_mrc + " -o " + align_xzy)
+os.system(tomo3d_cmd) 
+
+align_xyz = align_name.replace("_ali","_recons") + ".xyz"
+
+trimvol_cmd = ("trimvol -yz " + align_xzy + " " + align_xyz)
+os.system(trimvol_cmd)
+
+xzy_recons_size = os.path.getsize(align_xzy)
+xyz_recons_size = os.path.getsize(align_xyz)
+
+if (xzy_recons_size-2 <= xyz_recons_size <= xzy_recons_size+2): 
+    os.system("rm " + align_xzy)
+
+print("\nTOTAL ELAPSED TIME:")
+print("--- %s minutes ---\n" % ((time.time() - start_time)/60))
