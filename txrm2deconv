@@ -49,13 +49,13 @@ parser.add_argument('filesdir',
 parser.add_argument('-zp', '--zp-size', type=int, default=25,
                     help="ZP zones size (in nm)\n"
                          + "(default: 25)")        
-parser.add_argument('-e', '--energy', type=int, default=520,
+parser.add_argument('-e', '--energy', type=float, default=520,
                     help="Energy for deconvolution\n"
                          + "(default: 520)")
-parser.add_argument('-dx', type=int, default=12,
+parser.add_argument('-dx', type=float, default=12,
                     help="dx for deconvolution \n"
                          + "(default: 12)")  
-parser.add_argument('-k', '--kw', type=int, default=0.02,
+parser.add_argument('-k', '--kw', type=float, default=0.02,
                     help="kw for deconvolution\n"
                          + "(default: 0.02)")
 parser.add_argument('-t', '--thickness', type=int, default=20,
@@ -67,9 +67,9 @@ parser.add_argument('-p', '--psf-dir', type=str, default=psf_dir,
                          + "(default: " + psf_dir + " )")
 
 # Absorbance stack (Minus napierian logarithm of transmittance stack)  
-parser.add_argument('-l', '--minus_ln', type='bool', default='True',
+parser.add_argument('-l', '--minus_ln', type='bool', default='False',
                     help="Compute absorbance stack [-ln(mrc)]\n"
-                         + "(default: True)")
+                         + "(default: False)")
 
 # Convert output to hdf5
 parser.add_argument('-hdf', '--hdf5', type='bool', default='False',
